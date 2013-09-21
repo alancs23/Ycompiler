@@ -13,15 +13,15 @@ decl_list       : string_decl_list | var_decl_list ;
 /* Global String Declaration */
 string_decl_list  : string_decl+ ;
 		
-string_decl	: 'STRING' id ':=' str ';'
-		;
+string_decl	: 'STRING' id ':=' str ';' 
+		; 
 str		: STRINGLITERAL ;
 	
 
 /* Variable Declaration */
-var_decl_list	: var_decl+ ;
+var_decl_list	: var_decl ;
 	
-var_decl        : var_type id_list ';'
+var_decl        : (var_type id_list ';')+
 		;
 var_type	: 'FLOAT' 
                 | 'INT' 
@@ -114,11 +114,10 @@ for_stmt 	: 'FOR' '(' assign_expr? ';' cond? ';' assign_expr? ')' stmt_list 'END
 do_while_stmt   : 'DO' (stmt_list)? 'WHILE' '(' (cond|TRUE|FALSE) ')' ';' 
                 ; 
 
-
 //keywords
 PROGRAM : 'PROGRAM' ;
 BEGIN   : 'BEGIN'   ;
-STRING  : 'STRING'  ;
+STRING  : 'STRING' ;
 FUNCTION :  'FUNCTION' ;
 INT     :  'INT' ;
 FLOAT   :  'FLOAT' ;
@@ -136,23 +135,11 @@ TRUE    :  'TRUE' ;
 FALSE   :  'FALSE' ;
 BREAK   :  'BREAK' ;
 
-
 //variable
-IDENTIFIER : [_A-Za-z]+[0-9]* ;
+IDENTIFIER : ('a'..'z'|'A'..'Z'|'_') ('a'..'z'|'A'..'Z'|'0'..'9'|'_')* ;
 INTLITERAL : [0-9]+ ;
 FLOATLITERAL: [-]*[0-9]*[.][0-9]+ ;
 STRINGLITERAL : '"'~["]*'"' ;
 
 COMMENT : '-''-'~[\n]* -> skip ;
 WS : [ \t\r\n]+ -> skip ;
-
-
-
-
-
-
-
-
-
-
-

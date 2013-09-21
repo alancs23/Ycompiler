@@ -5,18 +5,27 @@ import org.antlr.v4.runtime.*;
 
 
 public class Micro {
+
+    public static class BailMicroLexer extends MicroLexer {
+	public BailMicroLexer(CharStream input) { super(input); }
+	public void recover(LexerNoViableAltException e) {
+	    throw new RuntimeException(e);
+	}
+    }
+
     public static void main(String[] args) throws IOException {
 	try {
-	    CharStream charStream = new ANTLRFileStream(args[0]);
-	    MicroLexer lexer = new MicroLexer(charStream);
+	    CharStream input = new ANTLRFileStream(args[0]);
+	    BailMicroLexer lexer = new BailMicroLexer(input);
 	    TokenStream tokenStream = new CommonTokenStream(lexer);
 	    MicroParser parser = new MicroParser(tokenStream);
+	    parser.setErrorHandler(new BailErrorStrategy());
 	    parser.program();
 	    System.out.println("Accepted");
 
 	}
 	catch (Exception e) {
-	    System.out.println("Not accepted");
+	    System.out.println("Not Accepted");
 	}
     }
 }
