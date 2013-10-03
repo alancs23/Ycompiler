@@ -1,6 +1,25 @@
 grammar Micro;
 
-program         : 'PROGRAM' id 'BEGIN' pgm_body 'END' ;
+@members {
+	 Integer blockCnt = 0;
+	 boolean errFlag = true;
+	 SymbolTable globalTab;
+	 SymbolTable curTab;
+	 String output = "";
+}
+
+program:	{
+			globalTab = new SymbolTable("global");
+			curTab = globalTab;
+			output += "Symbol table GLOBAL\n";
+         	}
+	 
+		'PROGRAM' id 'BEGIN' pgm_body 'END' 
+	        {
+			if (errFlag)
+				System.out.println(output);
+		}
+	 	;
 
 id	        : IDENTIFIER ;
 
@@ -14,29 +33,71 @@ decl_list       : string_decl_list | var_decl_list ;
 string_decl_list  : string_decl+ ;
 		
 string_decl	: 'STRING' id ':=' str ';' 
+		{
+			SymbolObject strSymbol = new SymbolObject($id.text, "STRING", $str.text);
+			if (curTab.isLegal(strSymbol)) {
+				curTab.addToTab(strSymbol);
+				output += strSymbol.printStr();
+			} else {
+				if (errFlag)
+				   curTab.printErr();
+			}
+		}
 		; 
 str		: STRINGLITERAL ;
 	
 
 /* Variable Declaration */
-var_decl_list	: var_decl ;
+var_decl_list	: var_decl+ ;
 	
-var_decl        : (var_type id_list ';')+
+var_decl        : var_type var_id_list ';'
 		;
-var_type	: 'FLOAT' 
-                | 'INT' 
+var_type	: 'FLOAT' {curTab.setVarType("FLOAT");} 
+                | 'INT'   {curTab.setVarType("INT");} 
                 ;
 		
 any_type        : var_type 
                 | 'VOID'
 		;
-id_list		: id ( ',' id )* ;
+var_id_list	: var_id ( ',' var_id )*
+		;
+var_id		: id
+		{
+			SymbolObject commonSymbol = new SymbolObject($id.text,curTab.getVarType());
+			if (curTab.isLegal(commonSymbol)) {
+ 			       curTab.addToTab(commonSymbol); 
+			       output += commonSymbol.print();
+			} else {
+				if (errFlag) {
+				   errFlag = false;
+				   curTab.printErr();
+				}
+			}
+		}
+		;
+id_list		: id id_tail ;
+
+id_tail 	: ( ',' id )* ;
 
 
 /* Function Paramater List */
 param_decl_list : param_decl param_decl_tail ;
 		
-param_decl      : var_type id ;
+param_decl      : var_type id
+		{
+			SymbolObject commonSymbol = new SymbolObject($id.text,curTab.getVarType());
+			if (curTab.isLegal(commonSymbol)) {
+ 			       curTab.addToTab(commonSymbol); 
+			       output += commonSymbol.print();
+			} else {
+				if (errFlag) {
+				   errFlag = false;
+				   curTab.printErr();
+				}
+			}
+
+		}
+		;
 		
 param_decl_tail : ( ',' param_decl )* 
 		;
@@ -44,7 +105,15 @@ param_decl_tail : ( ',' param_decl )*
 /* Function Declarations */
 func_declarations : func_decl* ;
 		
-func_decl       : 'FUNCTION' any_type id '(' param_decl_list? ')' 'BEGIN' func_body 'END' ;
+func_decl       : 'FUNCTION' any_type id 
+		{
+		      SymbolTable funcTable = new SymbolTable($id.text);
+		      curTab = funcTable;
+		      output += "\nSymbol table " + funcTable.getScopeId() + "\n";
+  	        }
+		'(' param_decl_list? ')' 'BEGIN' func_body 'END'
+		{curTab = globalTab;} 
+		;
 		
 func_body       : decl stmt_list ;
 		
@@ -98,11 +167,44 @@ mulop		: '*' | '/'
 		;
 
 /* Complex Statements and Condition */ 
-if_stmt		: 'IF' '(' cond ')' stmt_list else_part 'ENDIF' 
+if_stmt		: 'IF' '(' cond ')'
+		{
+		      blockCnt += 1;
+		      SymbolTable ifTable = new SymbolTable(blockCnt.toString());
+		      curTab = ifTable;
+		      output += "\nSymbol table BLOCK " + ifTable.getScopeId() + "\n\n";
+  	        } 
+		
+		 stmt_list else_part 'ENDIF' 
+		{curTab = globalTab;}
 		;
-else_part	: ( 'ELSE' stmt_list )? 
-                | ( 'ELSIF' '(' cond ')' stmt_list )*
-                | ( 'ELSIF' '(' (TRUE|FALSE) ')' stmt_list )*
+else_part	:  ('ELSE'
+		{
+		      blockCnt += 1;
+		      SymbolTable elseTable = new SymbolTable(blockCnt.toString());
+		      curTab = elseTable;
+		      output += "\nSymbol table BLOCK " + elseTable.getScopeId() + "\n\n";
+  	        } 
+                stmt_list)*
+		{curTab = globalTab;}
+                | ( 'ELSIF' '(' cond ')' 
+		{
+		      blockCnt += 1;
+		      SymbolTable elseifTable = new SymbolTable(blockCnt.toString());
+		      curTab = elseifTable;
+		      output += "\nSymbol table BLOCK " + elseifTable.getScopeId() + "\n\n";
+  	        } 
+		stmt_list )*
+		{curTab = globalTab;}
+                | ( 'ELSIF' '(' (TRUE|FALSE) ')' 
+		{
+		      blockCnt += 1;
+		      SymbolTable elseifTable = new SymbolTable(blockCnt.toString());
+		      curTab = elseifTable;
+		      output += "\nSymbol table BLOCK " + elseifTable.getScopeId() + "\n\n";
+                }
+		{curTab = globalTab;}
+		stmt_list )*
 		;
 cond     	: expr compop expr 
 		;
@@ -111,7 +213,16 @@ compop   	: '<' | '>' | '=' | '<=' | '>=' | '!='
 for_stmt 	: 'FOR' '(' assign_expr? ';' cond? ';' assign_expr? ')' stmt_list 'ENDFOR' 
 		;
 
-do_while_stmt   : 'DO' (stmt_list)? 'WHILE' '(' (cond|TRUE|FALSE) ')' ';' 
+do_while_stmt   : 'DO'
+		{
+		      blockCnt += 1;
+		      SymbolTable dowhileTable = new SymbolTable(blockCnt.toString());
+		      curTab = dowhileTable;
+		      output += "\nSymbol table BLOCK " + dowhileTable.getScopeId() + "\n" ;
+                }		
+	        (decl stmt_list)?
+		'WHILE' '(' (cond|TRUE|FALSE) ')' ';' 
+		{curTab = globalTab;}
                 ; 
 
 //keywords

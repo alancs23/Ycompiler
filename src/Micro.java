@@ -14,18 +14,11 @@ public class Micro {
     }
 
     public static void main(String[] args) throws IOException {
-	try {
 	    CharStream input = new ANTLRFileStream(args[0]);
 	    BailMicroLexer lexer = new BailMicroLexer(input);
 	    TokenStream tokenStream = new CommonTokenStream(lexer);
 	    MicroParser parser = new MicroParser(tokenStream);
-	    parser.setErrorHandler(new BailErrorStrategy());
+	    SymbolTable globalSymTab = new SymbolTable();
 	    parser.program();
-	    System.out.println("Accepted");
-
-	}
-	catch (Exception e) {
-	    System.out.println("Not Accepted");
-	}
     }
 }
