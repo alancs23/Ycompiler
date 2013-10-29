@@ -8,7 +8,7 @@ public class SymbolTable {
     private String symbolId;
 
     HashMap<String, SymbolObject> symbol = new HashMap<String, SymbolObject>();
-    
+
     public SymbolTable() {
     }
     public SymbolTable(String newScope) {
@@ -22,8 +22,18 @@ public class SymbolTable {
 	else
 	    return true;
     }
+
+    public HashMap<String, SymbolObject> getSymbols() {
+	return symbol;
+    }
+    public SymbolObject getSymbol(String symbolName) {
+	return symbol.get(symbolName);
+    }
     public void addToTab(SymbolObject newSymbol) {
 	symbol.put(newSymbol.getId(), newSymbol);
+    }
+    public void setScopeId(String id) {
+	curScope = id;
     }
     public String getScopeId() {
 	return curScope;

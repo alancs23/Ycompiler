@@ -1,3 +1,4 @@
+/*
 import org.antlr.v4.runtime.*;
 
 public class BailErrorStrategy extends DefaultErrorStrategy {
@@ -23,3 +24,4 @@ public class BailErrorStrategy extends DefaultErrorStrategy {
 	throws RecognitionException
     {}
 }
+*/

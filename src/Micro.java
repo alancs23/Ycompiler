@@ -1,24 +1,38 @@
 import java.io.IOException;
 import java.io.FileReader;
+import java.io.BufferedReader;
+import java.util.LinkedList;
 
-import org.antlr.v4.runtime.*;
+import org.antlr.runtime.ANTLRFileStream;
+import org.antlr.runtime.CharStream;
+import org.antlr.runtime.CommonTokenStream;
+import org.antlr.runtime.RecognitionException;
+import org.antlr.runtime.TokenStream;
+import org.antlr.runtime.tree.*;
 
+import antlr.ANTLRException;
 
 public class Micro {
-
+    /*
     public static class BailMicroLexer extends MicroLexer {
 	public BailMicroLexer(CharStream input) { super(input); }
 	public void recover(LexerNoViableAltException e) {
 	    throw new RuntimeException(e);
 	}
     }
-
-    public static void main(String[] args) throws IOException {
-	    CharStream input = new ANTLRFileStream(args[0]);
-	    BailMicroLexer lexer = new BailMicroLexer(input);
+*/
+    public static void main(String[] args) throws IOException, RecognitionException {
+	    CharStream charStream = new ANTLRFileStream(args[0]);
+	    MicroLexer lexer = new MicroLexer(charStream);
 	    TokenStream tokenStream = new CommonTokenStream(lexer);
 	    MicroParser parser = new MicroParser(tokenStream);
 	    SymbolTable globalSymTab = new SymbolTable();
-	    parser.program();
+	    MicroParser.program_return r = parser.program(globalSymTab);
+	    CommonTree ast = (CommonTree)r.getTree();
+	    IRGenerator IRGen = new IRGenerator(globalSymTab);
+	    IRGen.genIRcode(ast);
+	    LinkedList<IRnode> irList = IRGen.irList;
+	    TinyTranslator IRtoTiny = new TinyTranslator();
+	    IRtoTiny.translate(globalSymTab, irList);
     }
 }
