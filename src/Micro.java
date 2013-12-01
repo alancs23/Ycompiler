@@ -22,17 +22,23 @@ public class Micro {
     }
 */
     public static void main(String[] args) throws IOException, RecognitionException {
-	    CharStream charStream = new ANTLRFileStream(args[0]);
-	    MicroLexer lexer = new MicroLexer(charStream);
-	    TokenStream tokenStream = new CommonTokenStream(lexer);
-	    MicroParser parser = new MicroParser(tokenStream);
-	    SymbolTable globalSymTab = new SymbolTable();
-	    MicroParser.program_return r = parser.program(globalSymTab);
-	    CommonTree ast = (CommonTree)r.getTree();
-	    IRGenerator IRGen = new IRGenerator(globalSymTab);
-	    IRGen.genIRcode(ast);
-	    LinkedList<IRnode> irList = IRGen.irList;
-	    TinyTranslator IRtoTiny = new TinyTranslator();
-	    IRtoTiny.translate(globalSymTab, irList);
+	//BufferedReader br = new BufferedReader(new FileReader(args[0]));
+	int cnt = 0;
+	boolean fm = false;
+	boolean fa = false;
+	boolean fi = false;
+	String str;
+	CharStream charStream = new ANTLRFileStream(args[0]);
+	MicroLexer lexer = new MicroLexer(charStream);
+	TokenStream tokenStream = new CommonTokenStream(lexer);
+	MicroParser parser = new MicroParser(tokenStream);
+	SymbolTable globalSymTab = new SymbolTable();
+	MicroParser.program_return r = parser.program();
+	CommonTree ast = (CommonTree)r.getTree();
+	IRGenerator IRGen = new IRGenerator();
+	IRGen.genIRcode(ast);
+	LinkedList<IRnode> irList = IRGen.irList;
+	TinyTranslator IRtoTiny = new TinyTranslator(cnt);
+	IRtoTiny.translate(IRGen,irList);
     }
 }

@@ -1,4 +1,6 @@
 import java.util.LinkedList;
+import java.util.Map;
+import java.util.LinkedHashMap;
 
 import org.antlr.runtime.tree.BaseTree;
 import org.antlr.runtime.tree.CommonTree;
@@ -6,16 +8,24 @@ import org.antlr.runtime.tree.CommonTree;
 public class IRGenerator {
     int reg_index;
     int label_index;
-    SymbolTable globalSymTab;
-    SymbolTable curSymTable;
+    Map<String, SymbolObject> globalSymTab;
+    Map<String, SymbolObject> curSymTable;
+    Map<String, Function> funcTable;
     LinkedList<IRnode> irList;
+    Function curFunction;
 
-    IRGenerator(SymbolTable tab) {
+    public IRGenerator() {
 	reg_index = 1;
 	label_index = 1;
-	globalSymTab = tab;
+	globalSymTab = new LinkedHashMap<String, SymbolObject>();
+	funcTable = new LinkedHashMap<String, Function>();
 	curSymTable = globalSymTab;
 	irList = new LinkedList();
+	curFunction = null;
+    }
+
+    Map<String, SymbolObject> getGlobalTab() {
+	return globalSymTab;
     }
 
     void addToList(String code) {
@@ -23,9 +33,24 @@ public class IRGenerator {
 	System.out.println(';' + code);
     }
 
-    String getSymbolType(String symName) {
-	SymbolObject s = curSymTable.getSymbol(symName);
-	return s.getType();
+    Map<String, Function> getFuncTable() {
+	return this.funcTable;
+    }
+
+    SymbolObject getSymbol(String id) {
+	SymbolObject res = this.curSymTable.get(id);
+	if (res != null)
+	    return res;
+	else
+	    return this.globalSymTab.get(id);
+    }
+
+    String changeName(SymbolObject symbol) {
+	String IRname = symbol.getIRname();
+	if (IRname != null)
+	    return IRname;
+	else
+	    return symbol.getId();
     }
 
     int getTokenType(CommonTree astTree) {
@@ -38,6 +63,11 @@ public class IRGenerator {
 
     CommonTree getChild(BaseTree astTree, int i) {
 	return  (CommonTree)astTree.getChild(i);
+    }
+
+    String getChildToken(BaseTree astTree, int i) {
+
+	return getChild(astTree, i).getText().toString();
     }
 
     String getChildTokenTxt(BaseTree astTree, int i) {
@@ -58,20 +88,28 @@ public class IRGenerator {
 
     public void genIRcode(CommonTree astTree) {
 	switch(astTree.getToken().getType()) {
-	case MicroParser.PROGRAM :     program(astTree);        break;
-	case MicroParser.FUNC_DECL_LIST: func_decl_list(astTree); break;
-	case MicroParser.FUNCTION:     function(astTree);       break;
-	case MicroParser.STMT_LIST :     stmt_list(astTree);      break;
-	case MicroParser.EXPR_LIST :     expr_list(astTree);      break;
-	case MicroParser.IF :            if_stmt(astTree);      break;
-	case MicroParser.DO :            do_while_stmt(astTree);   break;
-	case MicroParser.ADD :           operator(astTree, null);       break;
-	case MicroParser.SUB :           operator(astTree, null);       break;
-	case MicroParser.MULT:           operator(astTree, null);       break;
-	case MicroParser.DIV :           operator(astTree, null);       break;
-	case MicroParser.READ:         read(astTree); break;
-	case MicroParser.WRITE:        write(astTree); break;
-	case MicroParser.ASSIGN:         assign_gen(astTree, null);   break;
+	case MicroParser.PROGRAM :          program(astTree);              break;
+	case MicroParser.PGM_BODY:          pgm_body(astTree);             break;
+	case MicroParser.DECL :             decl(astTree);                 break;
+	case MicroParser.FUNC_DECL_LIST:    func_decl_list(astTree);       break;
+	case MicroParser.FUNCTION:          function(astTree);             break;
+	case MicroParser.FUNC_BODY:         func_body(astTree);            break;
+	case MicroParser.PARAM_DECL_LIST :  param_decl_list(astTree);      break;
+	case MicroParser.CALL_EXPR :        call_expr(astTree);            break;
+	case MicroParser.VAR_DECL :         var_decl(astTree);             break;
+	case MicroParser.RETURN:            return_stmt(astTree);          break;
+	case MicroParser.STMT_LIST :        stmt_list(astTree);            break;
+	case MicroParser.EXPR_LIST :        expr_list(astTree);            break;
+	case MicroParser.STRING :           string_decl(astTree);          break;
+	case MicroParser.IF :               if_stmt(astTree);              break;
+	case MicroParser.DO :               do_while_stmt(astTree);        break;
+	case MicroParser.ADD :              operator(astTree, null);       break;
+	case MicroParser.SUB :              operator(astTree, null);       break;
+	case MicroParser.MULT:              operator(astTree, null);       break;
+	case MicroParser.DIV :              operator(astTree, null);       break;
+	case MicroParser.READ:              read(astTree);                 break;
+	case MicroParser.WRITE:             write(astTree);                break;
+	case MicroParser.ASSIGN:            assign_gen(astTree, null);     break;
 	default: System.out.println("ERROR TOKEN!-----> "+astTree.getToken().getText());
 	}
     }
@@ -80,6 +118,83 @@ public class IRGenerator {
 	for(int i = 0; i < astTree.getChildren().size(); i++) {
 	    genIRcode(getChild(astTree, i));
 	}
+    }
+
+    public void pgm_body(CommonTree astTree) {
+	for(int i = 0; i < astTree.getChildren().size(); i++) {
+	    genIRcode(getChild(astTree, i));
+	}
+    }
+
+    public void decl(CommonTree astTree) {
+	for(int i = 0; astTree.getChildren()!=null && i<astTree.getChildren().size(); i++) {
+	    genIRcode(getChild(astTree, i));
+	}
+    }
+
+    public void var_decl(CommonTree astTree) {
+	if (astTree.getChildren() == null)
+	    return ;
+	String varType = getChildTokenTxt(astTree, 0);
+	for (int i=1; i<astTree.getChildren().size(); i++) {
+	    SymbolObject symbol = new SymbolObject(getChildTokenTxt(astTree, i), varType);
+
+	    if (curFunction != null)
+		symbol.setIRname("$L" + Integer.toString(curFunction.getLocalVarNum() + 1));
+
+	    curFunction.setLocalVarNum(curFunction.getLocalVarNum() + 1);
+	    curSymTable.put(getChildTokenTxt(astTree, i), symbol);
+	    curSymTable.put(symbol.getIRname(), symbol);
+	}
+
+	if (curFunction != null) {
+	    int tmp_newlocalVarNum = astTree.getChildren().size()-1 + curFunction.getLocalVarNum();
+	    curFunction.setLocalVarNum(tmp_newlocalVarNum);
+	}
+    }
+
+    public String call_expr(CommonTree astTree) {
+	int para_num = getChild(astTree, 1).getChildren().size();
+	String parameters[] = new String[para_num];
+	String assign_res[] = new String[2];
+
+	for (int i=0; i<para_num; i++) {
+	    CommonTree tmp = getChild(astTree, 1);
+	    assign_gen(getChild(tmp, i), assign_res);
+	    parameters[i] = assign_res[0];
+	}
+
+	addToList("PUSH");
+
+	for (int i=0; i<para_num; i++)
+	    addToList("PUSH " + parameters[i]);
+
+	addToList("JSR " + getChildTokenTxt(astTree, 0));
+
+	for(int i=0; i < para_num; i++){
+	    addToList("POP");
+	}
+
+	String ret_reg = getRegister();
+
+	addToList("POP "+ ret_reg);
+
+	return ret_reg;
+    }
+
+    public void return_stmt(CommonTree astTree) {
+	String store_type = null;
+	String res[] = new String[2];
+	assign_gen(getChild(astTree, 0), res);
+
+	if (res[1].equals("INT"))
+	    store_type = "STOREI ";
+	else if (res[1].equals("FLOAT"))
+	    store_type = "STOREF ";
+	else
+	    System.out.println("Unknow return type  " + res[1]);
+	addToList(store_type + res[0] + " $R");
+	addToList("RET\n");
     }
 
     public void func_decl_list(CommonTree astTree) {
@@ -97,8 +212,9 @@ public class IRGenerator {
 	    res = new String[2];
 	if (getTokenType(astTree) == MicroParser.IDENTIFIER) {
 	    res[0] = getTokenTxt(astTree);
-	    SymbolObject symbol = globalSymTab.getSymbol(res[0]);
+	    SymbolObject symbol = getSymbol(res[0]);
 	    res[1] = symbol.getType();
+	    res[0] = changeName(symbol);
 	} else if (getTokenType(astTree) == MicroParser.INTLITERAL) {
 	    String operand = getTokenTxt(astTree);
 	    res[1] = "INT";
@@ -111,6 +227,10 @@ public class IRGenerator {
 	    String reg = getRegister();
 	    addToList("STOREF " + operand + ' ' + reg);
 	    res[0] = reg;
+	} else if (getTokenType(astTree) == MicroParser.CALL_EXPR) {
+	    //System.out.println("call----> " + getChildTokenTxt(astTree, 0));
+	    res[1] = "CALL";
+	    res[0] = call_expr(astTree);
 	} else {
 	    // :=, + , - , * , /
 	    String[] leftNode = new String[2];
@@ -119,16 +239,21 @@ public class IRGenerator {
 	    assign_gen(getChild(astTree, 1), rightNode);
 	    String type = "";
 	    String code = "";
-	    if (leftNode[1].equals("INT") && rightNode[1].equals("INT")) {
+
+	    if (leftNode[1].equals("INT") || rightNode[1].equals("INT")) {
 		res[1] = "INT";
 		type = "I ";
 	    } else if (leftNode[1].equals("FLOAT") || rightNode[1].equals("FLOAT")) {
 		res[1] = "FLOAT";
 		type = "F ";
+	    } else if (rightNode[1].equals("CALL")) {
+		System.out.println("leftNode--> " + leftNode[1] + " rightNode---> " + rightNode[1]);
 	    }
+
 	    switch(getTokenType(astTree)) {
 	    case(MicroParser.ASSIGN):
 		code = "STORE" + type + rightNode[0] + ' ' + leftNode[0];
+
 		break;
 	    case(MicroParser.ADD):
 		code = "ADD" + type;
@@ -192,6 +317,7 @@ public class IRGenerator {
 	}
 	return outLabel;
     }
+
     public void cond(CommonTree astTree,  String outLabel) {
 	String cond_code = null;
 	String left_res[] = {null, null};
@@ -223,10 +349,47 @@ public class IRGenerator {
     }
 
     public void function(CommonTree astTree) {
-	if (getChildTokenTxt(astTree, 1).equals("main")) {
-	    addToList("IR code");
+	// if (getChildTokenTxt(astTree, 1).equals("main")) {
+	//     addToList("IR code");
+	// }
+	// genIRcode(getChild(astTree, 2));
+	//System.out.println("function nam :  " + getChildTokenTxt(astTree, 0));
+	String funcName = getChildTokenTxt(astTree, 1);
+	Function func = new Function(funcName);
+	curFunction = func;
+	curSymTable = func.getSymbolTab();
+	funcTable.put(funcName, func);
+
+	String isPara = getChildTokenTxt(astTree, 2);
+	if (isPara.equals("PARAM_DECL_LIST")) {
+	    //function contains parameters
+	    genIRcode(getChild(astTree, 2));
+	    addToList("LABEL " + funcName);
+	    addToList("LINK ");
+	    //function body
+	    genIRcode(getChild(astTree, 3));
+	} else {
+	    //function do NOT contains parameters
+	    addToList("LABEL " + funcName);
+	    addToList("LINK ");
+	    //function body
+	    genIRcode(getChild(astTree, 2));
 	}
-	genIRcode(getChild(astTree, 2));
+
+	//check RET at the end
+    }
+
+    public void param_decl_list(CommonTree astTree) {
+	if (astTree.getChildren() == null)
+	    return ;
+
+	curFunction.setParameterNum(astTree.getChildren().size() / 2);
+	for (int i=0; astTree.getChildren()!=null && i<astTree.getChildren().size(); i+=2) {
+	    SymbolObject symbol = new SymbolObject(getChildToken(astTree, i+1), getChildToken(astTree, i));
+	    symbol.setIRname("$P" + Integer.toString(i/2+1));
+	    curSymTable.put(getChildToken(astTree, i+1), symbol);
+	    curSymTable.put(symbol.getIRname(), symbol);
+	}
     }
 
     public void stmt_list(CommonTree astTree) {
@@ -234,9 +397,20 @@ public class IRGenerator {
 	    genIRcode( getChild(astTree, i) );
     }
 
+    public void func_body(CommonTree astTree) {
+	for (int i=0; astTree.getChildren()!=null && i<astTree.getChildren().size(); i++) {
+	    genIRcode(getChild(astTree, i));
+	}
+    }
+
     public void expr_list(CommonTree astTree) {
 	for(int i = 0; i < astTree.getChildren().size(); i++)
 	    genIRcode( getChild(astTree, i) );
+    }
+
+    public void string_decl(CommonTree astTree) {
+	SymbolObject symbol = new SymbolObject(getChildTokenTxt(astTree, 0), "STRING", getChildTokenTxt(astTree, 1));
+	curSymTable.put(getChildTokenTxt(astTree, 0), symbol);
     }
 
     public void read(CommonTree astTree) {
@@ -244,11 +418,16 @@ public class IRGenerator {
 	String op = "READ";
 	astTree = (CommonTree)astTree.getChild(0);
 	for(int i = 0; i < astTree.getChildren().size(); i ++) {
-	    type = globalSymTab.getSymbol(getChildTokenTxt(astTree, i)).getType();
-	    if(type == "INT")
-		addToList(op + "I " + getChildTokenTxt(astTree, i));
-	    else if(type == "FLOAT")
-		addToList(op + "F "+ getChildTokenTxt(astTree, i));
+	    SymbolObject symbol = getSymbol(getChildTokenTxt(astTree, i));
+	    type = symbol.getType();
+	    String irname = changeName(symbol);
+
+	    if(type.equals("INT"))
+		addToList(op + "I "+ irname);
+	    else if(type.equals("FLOAT"))
+		addToList(op + "F "+ irname);
+	    else if (type.equals("STRING"))
+		addToList(op + "S " + irname);
 	}
     }
 
@@ -257,11 +436,16 @@ public class IRGenerator {
 	String op = "WRITE";
 	astTree = (CommonTree)astTree.getChild(0);
 	for(int i = 0; i < astTree.getChildren().size(); i ++) {
-	    type = globalSymTab.getSymbol(getChildTokenTxt(astTree, i)).getType();
-	    if(type == "INT")
-		addToList(op+"I "+getChildTokenTxt(astTree, i));
-	    else if(type == "FLOAT")
-		addToList(op+"F "+getChildTokenTxt(astTree, i));
+	    SymbolObject symbol = getSymbol(getChildTokenTxt(astTree, i));
+	    type = symbol.getType();
+	    String irname = changeName(symbol);
+
+	    if(type.equals("INT"))
+		addToList(op + "I "+ irname);
+	    else if(type.equals("FLOAT"))
+		addToList(op + "F "+ irname);
+	    else if (type.equals("STRING"))
+		addToList(op + "S " + irname);
 	}
     }
 

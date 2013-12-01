@@ -3,7 +3,7 @@ grammar Micro;
 options {
   	language = Java;
   	ASTLabelType = CommonTree;
-    	output = AST;
+    output = AST;
 }
 
 tokens {
@@ -11,9 +11,13 @@ tokens {
     CALL_EXPR;
     STMT_LIST;
     FUNC_DECL_LIST;
+    FUNC_BODY;
     EXPR_LIST;
-    PARA_DECL_LIST;
+    PARAM_DECL_LIST;
     VAR_DECL;
+    DECL;
+    STRING_DECL;
+    PGM_BODY;
 }
 
 @members {
@@ -24,41 +28,24 @@ tokens {
 	 String output = "";
 }
 
-program [SymbolTable symTable]
-    :	{
-			globalTab = symTable;
-            globalTab.setScopeId("global");
-			curTab = globalTab;
-			output += "Symbol table GLOBAL\n";
-        }
-
-		PROGRAM id BEGIN pgm_body END -> ^(PROGRAM pgm_body)
+program
+    :		PROGRAM^ id! BEGIN! pgm_body END!
 	 	;
 
 id	        : IDENTIFIER ;
 
-pgm_body	: decl! func_declarations
+pgm_body	: decl func_declarations -> ^(PGM_BODY decl func_declarations)
     ;
 
-decl		: decl_list* ;
+decl		: decl_list* -> ^(DECL decl_list*);
 
 decl_list       : string_decl_list | var_decl_list ;
 
 /* Global String Declaration */
 string_decl_list  : string_decl+ ;
 
-string_decl	: STRING id ASSIGN str SEMICOLON
-		{
-			SymbolObject strSymbol = new SymbolObject($id.text, "STRING", $str.text);
-			if (curTab.isLegal(strSymbol)) {
-				curTab.addToTab(strSymbol);
-				output += strSymbol.printStr();
-			} else {
-				if (errFlag)
-				   ;//curTab.printErr();
-			}
-		}
-		;
+string_decl	: STRING^ id ASSIGN! str SEMICOLON!	;
+
 str		: STRINGLITERAL ;
 
 
@@ -67,8 +54,8 @@ var_decl_list	: var_decl+ ;
 
 var_decl        : var_type var_id_list ';' -> ^(VAR_DECL var_type var_id_list) ;
 
-var_type	: FLOAT {curTab.setVarType("FLOAT");}
-                | INT   {curTab.setVarType("INT");}
+var_type	: FLOAT     //{curTab.setVarType("FLOAT");}
+                | INT   //{curTab.setVarType("INT");}
                 ;
 
 any_type        : var_type
@@ -77,18 +64,18 @@ any_type        : var_type
 var_id_list	: var_id ( COMMA! var_id )*
 		;
 var_id		: id
-		{
-			SymbolObject commonSymbol = new SymbolObject($id.text,curTab.getVarType());
-			if (curTab.isLegal(commonSymbol)) {
- 			       curTab.addToTab(commonSymbol);
-			       output += commonSymbol.print();
-			} else {
-				if (errFlag) {
-				   errFlag = false;
-				   //curTab.printErr();
-				}
-			}
-		}
+		// {
+		// 	SymbolObject commonSymbol = new SymbolObject($id.text,curTab.getVarType());
+		// 	if (curTab.isLegal(commonSymbol)) {
+ 		// 	       curTab.addToTab(commonSymbol);
+		// 	       output += commonSymbol.print();
+		// 	} else {
+		// 		if (errFlag) {
+		// 		   errFlag = false;
+		// 		   //curTab.printErr();
+		// 		}
+		// 	}
+		// }
 		;
 
 id_list
@@ -97,40 +84,39 @@ id_list
 
 
 /* Function Paramater List */
-param_decl_list : param_decl param_decl_tail
-    ;
+param_decl_list : param_decl (COMMA param_decl)* -> ^(PARAM_DECL_LIST param_decl*) ;
 
 param_decl      : var_type id
-		{
-			SymbolObject commonSymbol = new SymbolObject($id.text,curTab.getVarType());
-			if (curTab.isLegal(commonSymbol)) {
- 			       curTab.addToTab(commonSymbol);
-			       output += commonSymbol.print();
-			} else {
-				if (errFlag) {
-				   errFlag = false;
-				   //curTab.printErr();
-				}
-			}
-		}
+		// {
+		// 	SymbolObject commonSymbol = new SymbolObject($id.text,curTab.getVarType());
+		// 	if (curTab.isLegal(commonSymbol)) {
+ 		// 	       curTab.addToTab(commonSymbol);
+		// 	       output += commonSymbol.print();
+		// 	} else {
+		// 		if (errFlag) {
+		// 		   errFlag = false;
+		// 		   //curTab.printErr();
+		// 		}
+		// 	}
+		// }
 		;
 
-param_decl_tail : ( ',' param_decl )* ;
+//param_decl_tail : ( ',' param_decl )* ;
 
 /* Function Declarations */
 func_declarations : func_decl* -> ^(FUNC_DECL_LIST func_decl*) ;
 
 func_decl       : FUNCTION ^any_type id
-		{
-		      SymbolTable funcTable = new SymbolTable($id.text);
-		      curTab = funcTable;
-		      output += "\nSymbol table " + funcTable.getScopeId() + "\n";
-        }
+		// {
+		//       SymbolTable funcTable = new SymbolTable($id.text);
+		//       curTab = funcTable;
+		//       output += "\nSymbol table " + funcTable.getScopeId() + "\n";
+        // }
 		'('! param_decl_list? ')'! BEGIN! func_body END!
-		{curTab = globalTab;}
+		//{curTab = globalTab;}
 		;
 
-func_body       : decl! stmt_list ;
+func_body       : decl stmt_list -> ^(FUNC_BODY decl stmt_list) ;
 
 /* Statement List */
 stmt_list       : stmt* -> ^(STMT_LIST stmt*)
@@ -170,7 +156,7 @@ factor		: postfix_expr ( mulop^ postfix_expr )*
 		;
 postfix_expr	: primary | call_expr
 		;
-call_expr	: id LP expr_list? RP -> ^(CALL_EXPR expr_list)
+call_expr	: id LP expr_list? RP -> ^(CALL_EXPR id expr_list)
 		;
 expr_list
     : expr ( ',' expr )* -> ^(EXPR_LIST expr+)
@@ -200,16 +186,16 @@ compop   	: L | G | EQ | LE | GE | NE
     ;*/
 
 do_while_stmt   :
-        {
-		      blockCnt += 1;
-		      SymbolTable dowhileTable = new SymbolTable(blockCnt.toString());
-		      curTab = dowhileTable;
-		      output += "\nSymbol table BLOCK " + dowhileTable.getScopeId() + "\n" ;
-        }
+        // {
+		//       blockCnt += 1;
+		//       SymbolTable dowhileTable = new SymbolTable(blockCnt.toString());
+		//       curTab = dowhileTable;
+		//       output += "\nSymbol table BLOCK " + dowhileTable.getScopeId() + "\n" ;
+        // }
         DO^ stmt_list WHILE! LP! (cond) RP! SEMICOLON!
-		{
-            curTab = globalTab;
-        }
+		// {
+        //     curTab = globalTab;
+        // }
     ;
 
 //keywords
