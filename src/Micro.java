@@ -38,6 +38,8 @@ public class Micro {
 	IRGenerator IRGen = new IRGenerator();
 	IRGen.genIRcode(ast);
 	LinkedList<IRnode> irList = IRGen.irList;
+	RegAllocation regAllo = new RegAllocation(4, IRGen);
+	regAllo.Run();
 	TinyTranslator IRtoTiny = new TinyTranslator(cnt);
 	IRtoTiny.translate(IRGen,irList);
     }

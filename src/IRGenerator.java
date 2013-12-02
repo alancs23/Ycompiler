@@ -24,6 +24,11 @@ public class IRGenerator {
 	curFunction = null;
     }
 
+
+    public LinkedList<IRnode> getIrList() {
+	return irList;
+    }
+
     Map<String, SymbolObject> getGlobalTab() {
 	return globalSymTab;
     }
@@ -194,7 +199,7 @@ public class IRGenerator {
 	else
 	    System.out.println("Unknow return type  " + res[1]);
 	addToList(store_type + res[0] + " $R");
-	addToList("RET\n");
+	addToList("RET");
     }
 
     public void func_decl_list(CommonTree astTree) {
