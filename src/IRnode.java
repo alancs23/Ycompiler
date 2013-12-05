@@ -1,15 +1,20 @@
 import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class IRnode {
     String irCode;
     String[] tinycode;
     HashSet<String> liveVars;
+    public Map<String, String> liveVar;
     public IRnode next;
     public IRnode pre;
+    IRnode next2;
+    IRnode pre2;
     int killNum;
     int genNum;
     String killVar;
-    String[] genVars;
+    public String[] genVars;
     boolean boundry;
 
     public IRnode(String ir) {
@@ -21,7 +26,17 @@ public class IRnode {
 	killVar = null;
 	next = null;
 	pre = null;
+	next2 = null;
+	pre2 = null;
+	liveVar = new LinkedHashMap<String, String>();
 	liveVars = new HashSet<String>();
+    }
+
+    public void printLiveVar() {
+	System.out.print("; " + getCode() + "   live vars---> ");
+	for (String s : liveVars)
+	    System.out.print(s + " ");
+	System.out.println();
     }
 
     public boolean isBoundry() {
@@ -38,6 +53,10 @@ public class IRnode {
 
     public void addLiveVars(String var) {
 	liveVars.add(var);
+    }
+
+    public boolean isLive(String var) {
+	return liveVars.contains(var);
     }
 
     public void setKillNum(int num) {

@@ -33,6 +33,10 @@ public class IRGenerator {
 	return globalSymTab;
     }
 
+    Map<String, SymbolObject> getCurSymTab() {
+	return curSymTable;
+    }
+
     void addToList(String code) {
 	irList.add(new IRnode(code));
 	System.out.println(';' + code);
@@ -80,8 +84,7 @@ public class IRGenerator {
     }
 
     String getRegister() {
-	String res = "$T" + Integer.toString(reg_index);
-	reg_index++;
+	String res = "$T" + Integer.toString(curFunction.index++);
 	return res;
     }
 
@@ -141,20 +144,19 @@ public class IRGenerator {
 	if (astTree.getChildren() == null)
 	    return ;
 	String varType = getChildTokenTxt(astTree, 0);
+	int varNum = astTree.getChildren().size() - 1;
 	for (int i=1; i<astTree.getChildren().size(); i++) {
 	    SymbolObject symbol = new SymbolObject(getChildTokenTxt(astTree, i), varType);
 
-	    if (curFunction != null)
-		symbol.setIRname("$L" + Integer.toString(curFunction.getLocalVarNum() + 1));
-
-	    curFunction.setLocalVarNum(curFunction.getLocalVarNum() + 1);
+	    if (curFunction != null) {
+		symbol.setIRname("$L" + Integer.toString(curFunction.getLocalVarNum() + i));
+		curSymTable.put(symbol.getIRname(), symbol);
+	    }
 	    curSymTable.put(getChildTokenTxt(astTree, i), symbol);
-	    curSymTable.put(symbol.getIRname(), symbol);
 	}
 
 	if (curFunction != null) {
-	    int tmp_newlocalVarNum = astTree.getChildren().size()-1 + curFunction.getLocalVarNum();
-	    curFunction.setLocalVarNum(tmp_newlocalVarNum);
+	    curFunction.setLocalVarNum(varNum + curFunction.getLocalVarNum());
 	}
     }
 
@@ -234,7 +236,7 @@ public class IRGenerator {
 	    res[0] = reg;
 	} else if (getTokenType(astTree) == MicroParser.CALL_EXPR) {
 	    //System.out.println("call----> " + getChildTokenTxt(astTree, 0));
-	    res[1] = "CALL";
+	    res[1] = funcTable.get(getChildToken(astTree, 0)).getType();
 	    res[0] = call_expr(astTree);
 	} else {
 	    // :=, + , - , * , /
@@ -360,7 +362,8 @@ public class IRGenerator {
 	// genIRcode(getChild(astTree, 2));
 	//System.out.println("function nam :  " + getChildTokenTxt(astTree, 0));
 	String funcName = getChildTokenTxt(astTree, 1);
-	Function func = new Function(funcName);
+	String type = getChildTokenTxt(astTree, 0);
+	Function func = new Function(type, funcName);
 	curFunction = func;
 	curSymTable = func.getSymbolTab();
 	funcTable.put(funcName, func);
@@ -382,6 +385,11 @@ public class IRGenerator {
 	}
 
 	//check RET at the end
+	if (!irList.getLast().getCode().equals("RET")) {
+	    addToList("RET");
+	}
+	curSymTable = globalSymTab;
+	curFunction = null;
     }
 
     public void param_decl_list(CommonTree astTree) {

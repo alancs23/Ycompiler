@@ -41,6 +41,7 @@ public class Micro {
 	RegAllocation regAllo = new RegAllocation(4, IRGen);
 	regAllo.Run();
 	TinyTranslator IRtoTiny = new TinyTranslator(cnt);
-	IRtoTiny.translate(IRGen,irList);
+	//System.out.println();
+	//IRtoTiny.translate(IRGen,irList);
     }
 }

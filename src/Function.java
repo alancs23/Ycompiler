@@ -3,11 +3,11 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 
 public class Function {
-    public String name;
-    public int localVarNum;
-    public int parameterNum;
+    String name;
+    int localVarNum;
+    int parameterNum;
     public int index;
-
+    String type;
     public LinkedList<IRnode> irList = new LinkedList<IRnode>();
     private Map<String, SymbolObject> symbolTab = new LinkedHashMap<String, SymbolObject>();
 
@@ -18,8 +18,9 @@ public class Function {
 	index = 1;
     }
 
-    public Function(String name) {
+    public Function(String type, String name) {
 	this.name = name;
+	this.type = type;
 	localVarNum = 0;
 	parameterNum = 0;
 	index = 1;
@@ -27,6 +28,14 @@ public class Function {
 
     public Map<String, SymbolObject> getSymbolTab() {
 	return symbolTab;
+    }
+
+    public String getName() {
+	return name;
+    }
+
+    public String getType() {
+	return type;
     }
 
     public void setParameterNum(int n) {

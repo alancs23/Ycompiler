@@ -45,6 +45,8 @@ public class TinyTranslator {
 
 	HashMap<String, String> registerMap = new HashMap<String, String>();
 	for(IRnode node : irList){
+	    print(";----------------");
+	    print(";" + node.getCode());
 	    String tinyCode = "";
 	    String irCode = new String(node.getCode());
 	    String[] irSplit = irCode.split(" ");
