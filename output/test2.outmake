@@ -1,0 +1,211 @@
+;LABEL multiply
+;LINK 
+;WRITEF $P1
+;WRITEF $P2
+;WRITEF $P3
+;WRITEF $P4
+;WRITEF $P5
+;WRITEF $P6
+;MULTF $P1 $P2 $T1
+;MULTF $T1 $P3 $T2
+;MULTF $T2 $P4 $T3
+;MULTF $T3 $P5 $T4
+;MULTF $T4 $P6 $T5
+;STOREF $T5 $L1
+;STOREF $L1 $R
+;RET
+;LABEL main
+;LINK 
+;READF $L1
+;READF $L2
+;READF $L3
+;READF $L4
+;READF $L5
+;READF $L6
+;PUSH
+;PUSH $L1
+;PUSH $L2
+;PUSH $L3
+;PUSH $L4
+;PUSH $L5
+;PUSH $L6
+;JSR multiply
+;POP
+;POP
+;POP
+;POP
+;POP
+;POP
+;POP $T1
+;STOREF $T1 $L7
+;WRITEF $L7
+;STOREI 0 $T2
+;STOREI $T2 $R
+;RET
+push
+push r0
+push r1
+push r2
+push r3
+jsr main
+sys halt
+;----------------
+; LABEL multiply
+label multiply
+;----------------
+; LINK 
+link 6
+;----------------
+; WRITEF $P1
+move $11 r3
+sys writer r3
+;----------------
+; WRITEF $P2
+move $10 r2
+sys writer r2
+;----------------
+; WRITEF $P3
+move $9 r1
+sys writer r1
+;----------------
+; WRITEF $P4
+move $8 r0
+sys writer r0
+;----------------
+; WRITEF $P5
+move r0 $8
+move $7 r0
+sys writer r0
+;----------------
+; WRITEF $P6
+move r0 $7
+move $6 r0
+sys writer r0
+;----------------
+; MULTF $P1 $P2 $T1
+mulr r2 r3
+;----------------
+; MULTF $T1 $P3 $T2
+mulr r1 r3
+;----------------
+; MULTF $T2 $P4 $T3
+move $8 r2
+mulr r2 r3
+;----------------
+; MULTF $T3 $P5 $T4
+move $7 r2
+mulr r2 r3
+;----------------
+; MULTF $T4 $P6 $T5
+mulr r0 r3
+;----------------
+; STOREF $T5 $L1
+move r3 $-1
+;----------------
+; STOREF $L1 $R
+move $-1 r2
+move r2 $12
+;----------------
+; RET
+unlnk
+ret
+;----------------
+; LABEL main
+label main
+;----------------
+; LINK 
+link 9
+;----------------
+; READF $L1
+sys readr $-1
+;----------------
+; READF $L2
+sys readr $-2
+;----------------
+; READF $L3
+sys readr $-3
+;----------------
+; READF $L4
+sys readr $-4
+;----------------
+; READF $L5
+sys readr $-5
+;----------------
+; READF $L6
+sys readr $-6
+;----------------
+; PUSH
+push
+;----------------
+; PUSH $L1
+move $-1 r3
+push r3
+;----------------
+; PUSH $L2
+move $-2 r3
+push r3
+;----------------
+; PUSH $L3
+move $-3 r3
+push r3
+;----------------
+; PUSH $L4
+move $-4 r3
+push r3
+;----------------
+; PUSH $L5
+move $-5 r3
+push r3
+;----------------
+; PUSH $L6
+move $-6 r3
+push r3
+;----------------
+; JSR multiply
+push r0
+push r1
+push r2
+push r3
+jsr multiply
+pop r3
+pop r2
+pop r1
+pop r0
+;----------------
+; POP
+pop
+;----------------
+; POP
+pop
+;----------------
+; POP
+pop
+;----------------
+; POP
+pop
+;----------------
+; POP
+pop
+;----------------
+; POP
+pop
+;----------------
+; POP $T1
+pop r3
+;----------------
+; STOREF $T1 $L7
+move r3 $-7
+;----------------
+; WRITEF $L7
+sys writer r3
+;----------------
+; STOREI 0 $T2
+move 0 r3
+;----------------
+; STOREI $T2 $R
+move r3 $6
+;----------------
+; RET
+unlnk
+ret
+sys halt

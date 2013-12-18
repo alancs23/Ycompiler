@@ -27,10 +27,10 @@ public class TinyTranslator {
 	HashSet symbols = new HashSet(curSymbolTab.keySet());
 	Iterator it = symbols.iterator();
 	while(it.hasNext()) {
-	    String var = (String)it.next();
+	    String var = it.next().toString();
 	    SymbolObject symbol = curSymbolTab.get(var);
 	    if (symbol.getType().equals("INT") || symbol.getType().equals("FLOAT"))
-		System.out.println("var "+(String)it.next());
+		System.out.println("var "+ var);
 	    else if (symbol.getType().equals("STRING"))
 		System.out.println("str " + var + " " + symbol.getStr());
 	}
@@ -190,10 +190,13 @@ public class TinyTranslator {
 		    registerMap.put(irSplit[2], tinyReg);
 		    print("move " + irSplit[2] + " " + tinyReg);
 		}
-		if (curSymbolTab.get(irSplit_backup[1]).getType().equals("INT")) {
+		SymbolObject symbol = curSymbolTab.get(irSplit_backup[1]);
+		if (symbol == null)
+		    symbol = irGen.getGlobalTab().get(irSplit_backup[1]);
+		if (symbol.getType().equals("INT")) {
 		    print("cmpi " + irSplit[1] + " " + tinyReg);
 		    print(tinyCode + " " + irSplit[3]);
-		} else if (curSymbolTab.get(irSplit_backup[1]).getType().equals("FLOAT")) {
+		} else if (symbol.getType().equals("FLOAT")) {
 		    print("cmpr " + irSplit[1] + " " + tinyReg);
 		    print(tinyCode + " " + irSplit[3]);
 		}

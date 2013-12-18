@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.ListIterator;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.HashSet;
 
 public class RegAllocation {
     LinkedList<IRnode> irList;
@@ -15,7 +16,7 @@ public class RegAllocation {
     Map<String, String> regVar;
     Map<String, String> varReg;
     Map<String, String> varAddr;
-
+    HashSet<String> dirty;
     public RegAllocation(int maxRegNum, IRGenerator irGen) {
 	this.maxRegNum = maxRegNum;
 	this.irGen = irGen;
@@ -24,6 +25,7 @@ public class RegAllocation {
 	regVar = new LinkedHashMap<String, String>();
 	varReg = new LinkedHashMap<String, String>();
 	varAddr = new LinkedHashMap<String, String>();
+	dirty = new HashSet<String>();
     }
 
     String getRegister() {
@@ -32,6 +34,19 @@ public class RegAllocation {
 
     private void print(String str) {
 	System.out.println(str);
+    }
+
+    private void clearKeyFromValue(Map<String,String> map, String value) {
+	if (value == null)
+	    print("value is null");
+	if (map.containsValue(value)) {
+	    for(Map.Entry<String, String> e : map.entrySet()) {
+		if (e.getValue().equals(value)) {
+		    map.remove(e.getKey());
+		    return ;
+		}
+	    }
+	}
     }
 
     public void EstCFG() {
@@ -196,20 +211,20 @@ public class RegAllocation {
     private String Allocate(String var, IRnode curNode) {
 	String reg = null;
 	//if find a free reg, return it
-	//print("allocate var--> " + var);
-	//here
 	for (int i=maxRegNum-1; i>=0; i--) {
 	    reg = "r" + Integer.toString(i);
 	    if (!regVar.containsKey(reg)) {
+		clearKeyFromValue(regVar, var);
 		regVar.put(reg, var);
+		clearKeyFromValue(varReg, reg);
 		varReg.put(var, reg);
 		return reg;
 	    }
 	}
-
 	//if there is no free regs, find the farthest one and get spill out
 
 	//HashSet<String> varsInRegs = new HashSet<String>();
+
 	String[] varsInRegs = new String[maxRegNum];
 	int remainRegNum = maxRegNum;
 	for (int i=0; i<maxRegNum; i++)
@@ -268,14 +283,17 @@ public class RegAllocation {
 	String reg = null;
 	//if var exists, return reg
 	 // for (Map.Entry<String, String> e : varReg.entrySet())
-	 //      print("varReg in Ensure--> " + e.getKey() + " " + e.getValue());
+	 //       print("varReg in Ensure--> " + e.getKey() + " " + e.getValue());
 	if (varReg.containsKey(var)) {
 	    reg = varReg.get(var);
 	    return reg;
 	}
+	//print("var--> " + var + " " + varTiny);
 	//if not, allocate one
 	reg = Allocate(var, node);
+	clearKeyFromValue(regVar, var);
 	regVar.put(reg, var);
+	clearKeyFromValue(varReg, reg);
 	varReg.put(var, reg);
 	if (varTiny != null) {
 	    if (varTiny.startsWith("$T"))
@@ -445,7 +463,7 @@ public class RegAllocation {
 		    // }
 		} else {
 		    res = Ensure(irSplit_bak[2], null, node);
-		    FreeDeadReg(irSplit_bak[2], node);
+		    //FreeDeadReg(irSplit_bak[2], node);
 		    print("move " + irSplit[1] + " " + res);
 		    if (irSplit_bak[2].equals("$R"))
 			print("move " + res + " " + irSplit[2]);
@@ -459,7 +477,8 @@ public class RegAllocation {
 		FreeDeadReg(irSplit_bak[2], node);
 		String real_res = Ensure(irSplit_bak[3], null, node);
 		//debug
-		//print("addd---> " + op + " " + res + " " + real_res);
+		// print(irSplit[1] + " " + irSplit[2]);
+		// print("addd---> " + op + " " + res + " " + real_res + " " + regVar.get(op) + " " + regVar.get(res));
 		if (real_res.equals(op)) {
 		    print(tinyCode + " " + res + " " + real_res);
 		} else if (real_res.equals(res)) {
@@ -477,13 +496,18 @@ public class RegAllocation {
 		real_res = FreeDeadReg(irSplit_bak[1], node);
 		FreeDeadReg(irSplit_bak[2], node);
 		if (op.equals(real_res)) {
+		    clearKeyFromValue(varReg, op);
 		    varReg.put(irSplit_bak[3], op);
+		    clearKeyFromValue(regVar, irSplit_bak[3]);
 		    regVar.put(op,irSplit_bak[3]);
 		} else {
 		    //if (node.isLive(irSplit_bak[1]))
 		    if (node.liveVar.containsKey(irSplit_bak[1]))
 			print("move " + op + " " + irSplit[1]);
+
+		    clearKeyFromValue(regVar, irSplit_bak[3]);
 		    regVar.put(op, irSplit_bak[3]);
+		    clearKeyFromValue(varReg, op);
 		    varReg.put(irSplit_bak[3], op);
 		}
 		print(tinyCode + " " + res + " " + op);
@@ -569,6 +593,8 @@ public class RegAllocation {
 		    print(tinyCode + " " + op);
 		}
 	    } else if (irCode.startsWith("RET")) {
+		regVar.clear();
+		varReg.clear();
 		print("unlnk");
 		print("ret");
 	    }
