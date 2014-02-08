@@ -356,11 +356,6 @@ public class IRGenerator {
     }
 
     public void function(CommonTree astTree) {
-	// if (getChildTokenTxt(astTree, 1).equals("main")) {
-	//     addToList("IR code");
-	// }
-	// genIRcode(getChild(astTree, 2));
-	//System.out.println("function nam :  " + getChildTokenTxt(astTree, 0));
 	String funcName = getChildTokenTxt(astTree, 1);
 	String type = getChildTokenTxt(astTree, 0);
 	Function func = new Function(type, funcName);

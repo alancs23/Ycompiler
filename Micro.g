@@ -54,8 +54,8 @@ var_decl_list	: var_decl+ ;
 
 var_decl        : var_type var_id_list ';' -> ^(VAR_DECL var_type var_id_list) ;
 
-var_type	: FLOAT     //{curTab.setVarType("FLOAT");}
-                | INT   //{curTab.setVarType("INT");}
+var_type	: FLOAT
+                | INT
                 ;
 
 any_type        : var_type
@@ -64,18 +64,6 @@ any_type        : var_type
 var_id_list	: var_id ( COMMA! var_id )*
 		;
 var_id		: id
-		// {
-		// 	SymbolObject commonSymbol = new SymbolObject($id.text,curTab.getVarType());
-		// 	if (curTab.isLegal(commonSymbol)) {
- 		// 	       curTab.addToTab(commonSymbol);
-		// 	       output += commonSymbol.print();
-		// 	} else {
-		// 		if (errFlag) {
-		// 		   errFlag = false;
-		// 		   //curTab.printErr();
-		// 		}
-		// 	}
-		// }
 		;
 
 id_list
@@ -87,33 +75,13 @@ id_list
 param_decl_list : param_decl (COMMA param_decl)* -> ^(PARAM_DECL_LIST param_decl*) ;
 
 param_decl      : var_type id
-		// {
-		// 	SymbolObject commonSymbol = new SymbolObject($id.text,curTab.getVarType());
-		// 	if (curTab.isLegal(commonSymbol)) {
- 		// 	       curTab.addToTab(commonSymbol);
-		// 	       output += commonSymbol.print();
-		// 	} else {
-		// 		if (errFlag) {
-		// 		   errFlag = false;
-		// 		   //curTab.printErr();
-		// 		}
-		// 	}
-		// }
 		;
-
-//param_decl_tail : ( ',' param_decl )* ;
 
 /* Function Declarations */
 func_declarations : func_decl* -> ^(FUNC_DECL_LIST func_decl*) ;
 
 func_decl       : FUNCTION ^any_type id
-		// {
-		//       SymbolTable funcTable = new SymbolTable($id.text);
-		//       curTab = funcTable;
-		//       output += "\nSymbol table " + funcTable.getScopeId() + "\n";
-        // }
 		'('! param_decl_list? ')'! BEGIN! func_body END!
-		//{curTab = globalTab;}
 		;
 
 func_body       : decl stmt_list -> ^(FUNC_BODY decl stmt_list) ;
@@ -126,7 +94,6 @@ stmt		: assign_stmt
                 | read_stmt
                 | write_stmt
                 | if_stmt
-                //| for_stmt
                 | do_while_stmt
                 | continue_stmt
                 | break_stmt
@@ -182,20 +149,9 @@ cond     	: expr compop^ expr
             ;
 compop   	: L | G | EQ | LE | GE | NE
     ;
-/*for_stmt 	: FOR^ LP! assign_expr? SEMICOLON cond? SEMICOLON assign_expr? RP! stmt_list ENDFOR!
-    ;*/
 
 do_while_stmt   :
-        // {
-		//       blockCnt += 1;
-		//       SymbolTable dowhileTable = new SymbolTable(blockCnt.toString());
-		//       curTab = dowhileTable;
-		//       output += "\nSymbol table BLOCK " + dowhileTable.getScopeId() + "\n" ;
-        // }
         DO^ stmt_list WHILE! LP! (cond) RP! SEMICOLON!
-		// {
-        //     curTab = globalTab;
-        // }
     ;
 
 //keywords
